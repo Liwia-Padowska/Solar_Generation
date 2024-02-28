@@ -1,0 +1,4 @@
+https://github.com/u7javed/Conditional-WGAN-GP/blob/master/models.py
+
+currently using:
+https://github.com/gcucurull/cond-wgan-gp/blob/master/README.md
