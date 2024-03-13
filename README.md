@@ -1,2 +1,2 @@
 # Solar_generation
-Thesis
+Run scripts -> train.py to train the cWGAN-GP.

@@ -1,36 +1,8 @@
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
-import torch
-from torch.utils.data import Dataset, DataLoader
 
 weather_data_path = 'data/open_power/weather_data.csv'
 power_data_path = 'data/open_power/solar_15min.csv'
 time_col = 'utc_timestamp'
-
-# Time series
-
-# [0.1, 02, ......] 96 values: 1 Day of solar power production - 4*24
-# [1, 3 , 1] 3 - 6
-# [
-#
-# [1, 2, 3, 4] #temperature in 4 bins temperatur bin1
-# [cc
-
-
-class OpenPowerDataset(Dataset):
-    def __init__(self, combined_df, scaler_feature, scaler_condition, transform=None):
-        self.df = combined_df
-        # self.features = torch.tensor(scaler_feature.fit_transform(combined_df[["NL_solar_generation_actual"]]), dtype=torch.float32)
-        # self.conditions = torch.tensor(
-        #     scaler_condition.fit_transform(combined_df[['weather_conditions']]), dtype=torch.float32)
-        # self.
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, idx):
-        return self.conditions[idx], self.features[idx]
-
 
 def categorize_columns_with_prefix(df, prefix, time_column, num_bins):
     """
@@ -70,23 +42,30 @@ def group_column_into_bins(df, column_name, num_bins):
     return binned_df
 
 
-# def load_and_preprocess_data(solar_data_path, weather_data_path):
-#     solar_df = pd.read_csv(solar_data_path)
-#     weather_df = pd.read_csv(weather_data_path)
-#
-#     combined_df = pd.merge(solar_df, weather_df, on='utc_timestamp')
-#     # print(combined_df['NL_solar_generation_actual'])
-#
-#     # Normalize data
-#     scaler_feature = MinMaxScaler(feature_range=(0, 1))
-#     scaler_condition = MinMaxScaler(feature_range=(0, 1))
-#
-#     # Here add train/test split
-#
-#     dataset = SolarWeatherDataset(combined_df, scaler_feature, scaler_condition)
-#     loader = DataLoader(dataset, batch_size=32, shuffle=True)
-#
-#     return loader
+def classify_into_above_below_median_bins(df, column_name, aggregation='mean'):
+    """
+    Group the values in the specified column of the DataFrame based on specified aggregation.
+    Parameters:
+    df (DataFrame): The input DataFrame.
+    column_name (str): The name of the column to group.
+    aggregation (str): Aggregation method. Can be 'mean', 'median', etc.
+    Returns:
+    DataFrame: A new DataFrame with the column values grouped into bins.
+    """
+    df = df.copy()
+    column_values = df[column_name]
+
+    if aggregation == 'mean':
+        threshold = column_values.mean()
+    elif aggregation == 'median':
+        threshold = column_values.median()
+    else:
+        raise ValueError("Aggregation method not supported")
+
+    bin_edges = (column_values > threshold).astype(int)
+    binned_df = pd.DataFrame({column_name: bin_edges}, index=df.index)
+    return binned_df
+
 
 def one_hot_encode_columns(df):
     """
@@ -103,9 +82,10 @@ def one_hot_encode_columns(df):
     encoded_df = pd.concat(encoded_columns, axis=1)
     return encoded_df
 
+
 if __name__ == '__main__':
     df_weather = pd.read_csv(weather_data_path)
     df_weather = categorize_columns_with_prefix(df_weather, 'NL', time_col, 5)
-    print(df_weather)
+    df_power = pd.read_csv(power_data_path)
+    print(df_weather.columns)
     print(one_hot_encode_columns(df_weather))
-

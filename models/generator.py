@@ -1,13 +1,25 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
+
 class Generator(nn.Module):
     def __init__(self, opt):
+        """
+        Generator class for Conditional Wasserstein Generative Adversarial Network with Gradient Penalty(cWGAN-GP).
+
+        Args:
+            opt (argparse.Namespace): Configuration options.
+
+        Attributes:
+            opt (argparse.Namespace): Configuration options (from scripts/train).
+            label_emb (torch.nn.Embedding): Embedding layer for label information.
+            model (torch.nn.Sequential): Generator model architecture.
+        """
         super(Generator, self).__init__()
         self.opt = opt
 
-        self.label_emb = nn.Embedding(opt.n_classes, opt.n_classes)
+        # Embedding layer for label information
+        self.label_emb = nn.Embedding(opt.n_classes, opt.latent_dim)
 
         def block(in_feat, out_feat, normalize=True):
             layers = [nn.Linear(in_feat, out_feat)]
@@ -16,24 +28,31 @@ class Generator(nn.Module):
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
+        # Define the generator model
         self.model = nn.Sequential(
-            *block(opt.latent_dim + opt.n_classes, 128, normalize=False),
-            *block(128, 256),
-            *block(256, 512),
-            *block(512, 1024),
-            nn.Linear(1024, int(opt.series_length)),
+            *block(opt.latent_dim + opt.latent_dim, 256, normalize=False),
+            *block(256, 128),
+            nn.Linear(128, opt.series_length),
             nn.Tanh()
         )
 
     def forward(self, z, labels):
-        # Concatenate label embedding and image to produce input
-        gen_input = torch.cat((self.label_emb(labels), z), -1)
-        img = self.model(gen_input)
-        img = img.view(img.shape[0], * self.opt.img_shape)
-        return img
+        """
+        Forward pass of the generator.
 
-# Add the same input to the discriminator, alongside the image input.
-    # That may involve having inputs at different layers, so you can combine CNN and fully-connect
-    # layers more easily. Typically you would concatenate the class choice to the flattened last CNN layer,
-    # and use this concatenated vector as input to the first fully-connected layer. But you could concat the
-    # class data to any nn layer before the output.
+        Args:
+            z (torch.Tensor): Input noise vector.
+            labels (torch.Tensor): Input labels.
+
+        Returns:
+            torch.Tensor: Generated series data.
+        """
+        # Obtain label embeddings
+        label_embedding = self.label_emb(labels)
+
+        # Concatenate label embeddings with noise vector
+        gen_input = torch.cat((label_embedding, z), -1)
+
+        # Generate series data
+        series = self.model(gen_input)
+        return series

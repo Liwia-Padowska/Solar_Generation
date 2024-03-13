@@ -2,3 +2,14 @@ https://github.com/u7javed/Conditional-WGAN-GP/blob/master/models.py
 
 currently using:
 https://github.com/gcucurull/cond-wgan-gp/blob/master/README.md
+
+thesis on GANs from UM financial time series
+https://www.linkedin.com/in/casper-hogenboom-a66018a3/details/experience/
+https://github.com/CasperHogenboom/WGAN_financial_time-series/tree/master
+
+to check what architecture to use:
+Karol Kurach, Mario Lucic, Xiaohua Zhai, Marcin Michalski, and Sylvain Gelly. The
+gan landscape: Losses, architectures, regularization, and normalization. arXiv preprint
+arXiv:1807.04720, 2018.
+
+https://learnopencv.com/conditional-gan-cgan-in-pytorch-and-tensorflow/
