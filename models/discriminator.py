@@ -22,14 +22,27 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(opt.series_length + opt.latent_dim, 512),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.LayerNorm(512),
             nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.LayerNorm(256),
             nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.LayerNorm(128),
             nn.Linear(128, 1),
             # No tanh in WGAN-GP, as it is a soft critic
+            # Batch normalisation introduces learnable parameters (scale and shift) for each feature,
+            # allowing the network to learn the optimal normalisation for each layer during training,
+            # but it may lead to correlations within a batch since it changes the problem of mapping a single input
+            # to single output to mapping from an entire batch of inputs to a batch of outputs - but here we
+            # penalize the norm of the critic's gradient with respect to each input independently, hence the WGAN-GP
+            # paper recommends the layer normalisation.
+
+            # Layer Norm operates on the feature dimension.
+            # It normalizes the activations of a layer by computing the mean and variance
+            # across the features for each individual sample.
+            # The normalization process is applied independently to each sample,
+            # which makes LN less sensitive to batch size variations compared to BN.
         )
 
     def forward(self, series, labels):

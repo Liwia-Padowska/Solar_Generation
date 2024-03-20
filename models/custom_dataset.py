@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class OpenPowerDataset(Dataset):
@@ -11,33 +12,64 @@ class OpenPowerDataset(Dataset):
     Args:
         data (pd.DataFrame): DataFrame containing the dataset.
         n_classes (int): Number of classes for label categorization.
+        threshold_mode (str): Mode for setting temperature thresholds. Options are "auto" or "manual".
+        manual_thresholds (list): List of manual thresholds for each class. Only used if threshold_mode is set to "manual".
     """
 
-    def __init__(self, data, n_classes):
+    def __init__(self, data, n_classes, threshold_mode="auto", manual_thresholds=None):
         """
         Initializes the dataset.
-
         Extracts time series sequences and their corresponding labels from the given DataFrame.
 
         Args:
             data (pd.DataFrame): DataFrame containing the dataset.
             n_classes (int): Number of classes for label categorization.
+            threshold_mode (str): Mode for setting temperature thresholds. Options are "auto" or "manual".
+            manual_thresholds (list): List of manual thresholds for each class. Only used if threshold_mode is set to "manual".
         """
         sequences, labels = extract_time_series_with_labels(data, "NL_solar_generation_actual", "NL_temperature",
-                                                            4 * 24, n_classes)
+                                                            4 * 24, n_classes, threshold_mode, manual_thresholds)
         self.sequences_tensor = torch.tensor(sequences)
         self.labels_tensor = torch.tensor(labels)
-        # print("Sequences Tensor:")
-        # print(self.sequences_tensor[0])
-        # print("Labels Tensor:")
-        # print(self.labels_tensor[0])
-        # check_tensor_compatibility(self.sequences_tensor, self.labels_tensor)
+        self.n_classes = n_classes
+        self.data = data
 
     def __len__(self):
         return len(self.sequences_tensor)
 
     def __getitem__(self, idx):
         return self.sequences_tensor[idx], self.labels_tensor[idx]
+
+    def label_histogram(self):
+        """
+        Plots a histogram showing the distribution of labels in the dataset.
+        """
+        label_counts = {i: 0 for i in range(self.n_classes)}
+        for label in self.labels_tensor:
+            label_counts[label.item()] += 1
+
+        plt.bar(label_counts.keys(), label_counts.values())
+        plt.xlabel('Label')
+        plt.ylabel('Frequency')
+        plt.title('Histogram of Labels')
+        plt.show()
+
+    def print_statistics(self):
+        """
+        Prints descriptive statistics of the dataset and plots the distributions of each variable.
+        """
+        print("Descriptive Statistics:")
+        print(self.data.describe())
+
+        print("\nDistributions of Variables:")
+        for column in self.data.columns:
+            if column not in ['utc_timestamp', 'NL_solar_generation_actual', 'NL_temperature']:
+                plt.figure(figsize=(8, 6))
+                plt.hist(self.data[column], bins=20, color='skyblue', edgecolor='black')
+                plt.title(f"Distribution of {column}")
+                plt.xlabel(column)
+                plt.ylabel('Frequency')
+                plt.show()
 
 
 def join_resample_dataframes(df1, df2, timestamp_column):
@@ -88,7 +120,8 @@ def check_tensor_compatibility(tensor1, tensor2):
         return True
 
 
-def extract_time_series_with_labels(dataframe, data_column_name, label_column_name, lookback_window, n_classes):
+def extract_time_series_with_labels(dataframe, data_column_name, label_column_name, lookback_window, n_classes,
+                                    threshold_mode="auto", manual_thresholds=None):
     """
     Extracts time series sequences and their corresponding labels from the DataFrame.
 
@@ -98,6 +131,8 @@ def extract_time_series_with_labels(dataframe, data_column_name, label_column_na
         label_column_name (str): Name of the column containing labels.
         lookback_window (int): Size of the window for each sequence.
         n_classes (int): Number of classes for label categorization.
+        threshold_mode (str): Mode for setting temperature thresholds. Options are "auto" or "manual".
+        manual_thresholds (list): List of manual thresholds for each class. Only used if threshold_mode is set to "manual".
 
     Returns:
         np.ndarray: Array of time series sequences.
@@ -105,21 +140,46 @@ def extract_time_series_with_labels(dataframe, data_column_name, label_column_na
     """
     time_series_data = dataframe[data_column_name].values
     label_series_data = dataframe[label_column_name].values
-    max_temp = np.max(label_series_data)
-    min_temp = np.min(label_series_data)
-    temp_range = max_temp - min_temp
-    interval = temp_range / n_classes
+
+    if threshold_mode == "manual":
+        if len(manual_thresholds) != n_classes - 1:
+            raise ValueError("Number of manual thresholds should be equal to number of classes minus one.")
+        thresholds = manual_thresholds
+    else:
+        max_temp = np.max(label_series_data)
+        min_temp = np.min(label_series_data)
+        temp_range = max_temp - min_temp
+        interval = temp_range / n_classes
+        thresholds = [min_temp + interval * (i + 1) for i in range(n_classes - 1)]
+
     sequences = []
     labels = []
+    all_means = []
+
     for i in range(len(time_series_data) - lookback_window + 1):
         window = time_series_data[i:i + lookback_window]
         avg_temp = np.mean(label_series_data[i:i + lookback_window])
-        class_label = min(int((avg_temp - min_temp) / interval), n_classes - 1)
+        all_means.append(avg_temp)
+
+        # Assign label based on temperature thresholds
+        for idx, threshold in enumerate(thresholds):
+            if avg_temp <= threshold:
+                class_label = idx
+                break
+        else:
+            class_label = n_classes - 1
+
         sequences.append(window)
         labels.append(class_label)
+
     sequences_array = np.array(sequences)
     labels_array = np.array(labels)
+    all_means_mean = np.mean(all_means)
+    all_means_std = np.std(all_means)
+    print("Mean of all means across different days:", all_means_mean)
+    print("Standard deviation of all means across different days:", all_means_std)
     return sequences_array, labels_array
+
 
 
 if __name__ == '__main__':
@@ -128,14 +188,8 @@ if __name__ == '__main__':
     solar_power_data = pd.read_csv(solar_power_file)
     weather_data = pd.read_csv(weather_file)
     data = join_resample_dataframes(solar_power_data, weather_data, "utc_timestamp")
-    dataset = OpenPowerDataset(data, 5)
+    dataset = OpenPowerDataset(data, n_classes=3, threshold_mode="manual", manual_thresholds=[10, 11.5])
+    dataset.label_histogram()
+    dataset.print_statistics()
     data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
-    for batch in data_loader:
-        solar_power_batch, weather_data_batch = batch
-        # Print batch shapes
-        print("Solar power batch shape:", solar_power_batch.shape)
-        print("Weather data batch shape:", weather_data_batch.shape)
-        for sequence, label in zip(solar_power_batch, weather_data_batch):
-            print("Sequence:", sequence)
-            print("Label:", label)
-        break
+

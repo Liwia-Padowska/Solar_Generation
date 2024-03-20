@@ -21,16 +21,16 @@ class Generator(nn.Module):
         # Embedding layer for label information
         self.label_emb = nn.Embedding(opt.n_classes, opt.latent_dim)
 
-        def block(in_feat, out_feat, normalize=True):
-            layers = [nn.Linear(in_feat, out_feat)]
+        def block(feat_in, fear_out, normalize=True):
+            layers = [nn.Linear(feat_in, fear_out)]
             if normalize:
-                layers.append(nn.BatchNorm1d(out_feat, 0.8))
+                layers.append(nn.LayerNorm(fear_out))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
         # Define the generator model
         self.model = nn.Sequential(
-            *block(opt.latent_dim + opt.latent_dim, 256, normalize=False),
+            *block(opt.latent_dim + opt.latent_dim, 256, normalize=True),
             *block(256, 128),
             nn.Linear(128, opt.series_length),
             nn.Tanh()
