@@ -1,8 +1,13 @@
+from typing import Tuple, List
+
 import torch
 from torch.utils.data import DataLoader, Dataset
+from pandas import DataFrame
+from torch import Tensor
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from config import N_CLASSES, THRESHOLD_MODE, MANUAL_THRESHOLDS
 
 
 class OpenPowerDataset(Dataset):
@@ -16,7 +21,7 @@ class OpenPowerDataset(Dataset):
         manual_thresholds (list): List of manual thresholds for each class. Only used if threshold_mode is set to "manual".
     """
 
-    def __init__(self, data, n_classes, threshold_mode="auto", manual_thresholds=None):
+    def __init__(self, data: DataFrame, n_classes: int, threshold_mode: str, manual_thresholds: List[float]):
         """
         Initializes the dataset.
         Extracts time series sequences and their corresponding labels from the given DataFrame.
@@ -34,13 +39,13 @@ class OpenPowerDataset(Dataset):
         self.n_classes = n_classes
         self.data = data
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sequences_tensor)
 
-    def __getitem__(self, idx):
-        return self.sequences_tensor[idx], self.labels_tensor[idx]
+    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
+        return self.sequences_tensor[index], self.labels_tensor[index]
 
-    def label_histogram(self):
+    def label_histogram(self) -> None:
         """
         Plots a histogram showing the distribution of labels in the dataset.
         """
@@ -54,7 +59,7 @@ class OpenPowerDataset(Dataset):
         plt.title('Histogram of Labels')
         plt.show()
 
-    def print_statistics(self):
+    def print_statistics(self) -> None:
         """
         Prints descriptive statistics of the dataset and plots the distributions of each variable.
         """
@@ -72,7 +77,7 @@ class OpenPowerDataset(Dataset):
                 plt.show()
 
 
-def join_resample_dataframes(df1, df2, timestamp_column):
+def join_resample_dataframes(df1: DataFrame, df2: DataFrame, timestamp_column: str) -> DataFrame:
     """
     Joins and resamples two DataFrames based on a common timestamp column.
 
@@ -98,7 +103,7 @@ def join_resample_dataframes(df1, df2, timestamp_column):
     return joined_df
 
 
-def check_tensor_compatibility(tensor1, tensor2):
+def check_tensor_compatibility(tensor1: Tensor, tensor2: Tensor) -> bool:
     """
     Checks if two tensors are compatible.
 
@@ -120,8 +125,8 @@ def check_tensor_compatibility(tensor1, tensor2):
         return True
 
 
-def extract_time_series_with_labels(dataframe, data_column_name, label_column_name, lookback_window, n_classes,
-                                    threshold_mode="auto", manual_thresholds=None):
+def extract_time_series_with_labels(dataframe: DataFrame, data_column_name: str, label_column_name: str, lookback_window: int, n_classes: int,
+                                    threshold_mode: str = "auto", manual_thresholds: List[float] = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extracts time series sequences and their corresponding labels from the DataFrame.
 
@@ -181,15 +186,14 @@ def extract_time_series_with_labels(dataframe, data_column_name, label_column_na
     return sequences_array, labels_array
 
 
-
 if __name__ == '__main__':
     solar_power_file = 'data/open_power/solar_15min.csv'
     weather_file = 'data/open_power/weather_data.csv'
     solar_power_data = pd.read_csv(solar_power_file)
     weather_data = pd.read_csv(weather_file)
     data = join_resample_dataframes(solar_power_data, weather_data, "utc_timestamp")
-    dataset = OpenPowerDataset(data, n_classes=3, threshold_mode="manual", manual_thresholds=[10, 11.5])
+    dataset = OpenPowerDataset(data, n_classes=N_CLASSES, threshold_mode=THRESHOLD_MODE,
+                               manual_thresholds=MANUAL_THRESHOLDS)
     dataset.label_histogram()
     dataset.print_statistics()
     data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
-

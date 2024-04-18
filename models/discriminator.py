@@ -1,9 +1,11 @@
 import torch
+from torch import Tensor
 import torch.nn as nn
+import argparse
 
 
 class Discriminator(nn.Module):
-    def __init__(self, opt):
+    def __init__(self, opt: argparse.Namespace):
         """
         Discriminator class for Conditional Wasserstein Generative Adversarial Network with Gradient Penalty (cWGAN-GP).
 
@@ -45,7 +47,7 @@ class Discriminator(nn.Module):
             # which makes LN less sensitive to batch size variations compared to BN.
         )
 
-    def forward(self, series, labels):
+    def forward(self, series: Tensor, labels: Tensor) -> Tensor:
         """
         Forward pass of the discriminator.
         Args:

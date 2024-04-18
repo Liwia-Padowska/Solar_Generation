@@ -1,10 +1,14 @@
 import pandas as pd
+from pandas import DataFrame
+
+from config import SOLAR_POWER_FILE, WEATHER_FILE, COLUMN_NAME
 
 weather_data_path = 'data/open_power/weather_data.csv'
 power_data_path = 'data/open_power/solar_15min.csv'
 time_col = 'utc_timestamp'
 
-def categorize_columns_with_prefix(df, prefix, time_column, num_bins):
+
+def categorize_columns_with_prefix(df: DataFrame, prefix: str, time_column: str, num_bins: int) -> DataFrame:
     """
     Select columns with the specified prefix from the DataFrame and apply group_into_bins function to each.
     Parameters:
@@ -25,7 +29,7 @@ def categorize_columns_with_prefix(df, prefix, time_column, num_bins):
     return categorized_df
 
 
-def group_column_into_bins(df, column_name, num_bins):
+def group_column_into_bins(df: DataFrame, column_name: str, num_bins: int) -> DataFrame:
     """
     Group the values in the specified column of the DataFrame into the specified number of bins.
     Parameters:
@@ -42,7 +46,7 @@ def group_column_into_bins(df, column_name, num_bins):
     return binned_df
 
 
-def classify_into_above_below_median_bins(df, column_name, aggregation='mean'):
+def classify_into_above_below_median_bins(df: DataFrame, column_name: str, aggregation: str = 'mean') -> DataFrame:
     """
     Group the values in the specified column of the DataFrame based on specified aggregation.
     Parameters:
@@ -67,7 +71,7 @@ def classify_into_above_below_median_bins(df, column_name, aggregation='mean'):
     return binned_df
 
 
-def one_hot_encode_columns(df):
+def one_hot_encode_columns(df: DataFrame) -> DataFrame:
     """
     Perform one-hot encoding on each column of the DataFrame.
     Parameters:
@@ -84,8 +88,8 @@ def one_hot_encode_columns(df):
 
 
 if __name__ == '__main__':
-    df_weather = pd.read_csv(weather_data_path)
+    df_weather = pd.read_csv(WEATHER_FILE)
     df_weather = categorize_columns_with_prefix(df_weather, 'NL', time_col, 5)
-    df_power = pd.read_csv(power_data_path)
+    df_power = pd.read_csv(SOLAR_POWER_FILE)
     print(df_weather.columns)
     print(one_hot_encode_columns(df_weather))

@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
+from torch import Tensor
+import argparse
 
 
 class Generator(nn.Module):
-    def __init__(self, opt):
+    def __init__(self, opt: argparse.Namespace):
         """
         Generator class for Conditional Wasserstein Generative Adversarial Network with Gradient Penalty(cWGAN-GP).
 
@@ -36,7 +38,7 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, z, labels):
+    def forward(self, z: Tensor, labels: Tensor) -> Tensor:
         """
         Forward pass of the generator.
 
