@@ -50,11 +50,11 @@ class Generator(nn.Module):
             torch.Tensor: Generated series data.
         """
         # Obtain label embeddings
-        label_embedding = self.label_emb(labels)
+        label_embedding = self.label_emb(labels=labels)
 
         # Concatenate label embeddings with noise vector
         gen_input = torch.cat((label_embedding, z), -1)
 
         # Generate series data
-        series = self.model(gen_input)
+        series = self.model(input=gen_input)
         return series

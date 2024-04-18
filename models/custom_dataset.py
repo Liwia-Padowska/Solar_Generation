@@ -189,11 +189,11 @@ def extract_time_series_with_labels(dataframe: DataFrame, data_column_name: str,
 if __name__ == '__main__':
     solar_power_file = 'data/open_power/solar_15min.csv'
     weather_file = 'data/open_power/weather_data.csv'
-    solar_power_data = pd.read_csv(solar_power_file)
-    weather_data = pd.read_csv(weather_file)
-    data = join_resample_dataframes(solar_power_data, weather_data, "utc_timestamp")
-    dataset = OpenPowerDataset(data, n_classes=N_CLASSES, threshold_mode=THRESHOLD_MODE,
+    solar_power_data = pd.read_csv(filepath_or_buffer=solar_power_file)
+    weather_data = pd.read_csv(filepath_or_buffer=weather_file)
+    data = join_resample_dataframes(df1=solar_power_data, df2=weather_data, timestamp_column="utc_timestamp")
+    dataset = OpenPowerDataset(data=data, n_classes=N_CLASSES, threshold_mode=THRESHOLD_MODE,
                                manual_thresholds=MANUAL_THRESHOLDS)
     dataset.label_histogram()
     dataset.print_statistics()
-    data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
+    data_loader = DataLoader(dataset=dataset, batch_size=64, shuffle=True)

@@ -88,8 +88,8 @@ def one_hot_encode_columns(df: DataFrame) -> DataFrame:
 
 
 if __name__ == '__main__':
-    df_weather = pd.read_csv(WEATHER_FILE)
-    df_weather = categorize_columns_with_prefix(df_weather, 'NL', time_col, 5)
-    df_power = pd.read_csv(SOLAR_POWER_FILE)
+    df_weather = pd.read_csv(filepath_or_buffer=WEATHER_FILE)
+    df_weather = categorize_columns_with_prefix(df=df_weather, prefix='NL', time_column=time_col, num_bins=5)
+    df_power = pd.read_csv(filepath_or_buffer=SOLAR_POWER_FILE)
     print(df_weather.columns)
-    print(one_hot_encode_columns(df_weather))
+    print(one_hot_encode_columns(df=df_weather))

@@ -293,8 +293,8 @@ if __name__ == '__main__':
     device = torch.device("cuda" if cuda else "cpu")
     print("CUDA available:", cuda)
 
-    generator = Generator(opt).to(device)
-    discriminator = Discriminator(opt).to(device)
+    generator = Generator(opt=opt).to(device=device)
+    discriminator = Discriminator(opt=opt).to(device=device)
 
     if opt.dataset == 'open_power':
         os.chdir(module_path)
